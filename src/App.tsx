@@ -5,7 +5,7 @@ import * as v from "@badrap/valita";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 
-const Response = v.object({
+const ClearSkyListsResponse = v.object({
     data: v.object({
         lists: v.array(v.object({
             created_at: v.string().nullable().optional(),
@@ -21,7 +21,7 @@ const fetchLists = async (handle: string) => {
     const response = await fetch(`https://api.clearsky.services/api/v1/anon/get-list/${handle}`);
     const json = await response.json();
     try {
-        const parsed = Response.parse(json, { mode: "strip" });
+        const parsed = ClearSkyListsResponse.parse(json, { mode: "strip" });
         return parsed.data.lists;
     } catch (e) {
         console.error(json);
@@ -29,10 +29,19 @@ const fetchLists = async (handle: string) => {
     }
 };
 
+const fetchUsers = async (lists: Awaited<ReturnType<typeof fetchLists>>) => {
+    return new Promise<string>((resolve) => {
+        setTimeout(() => {
+            resolve(`${lists.length}`);
+        }, 1000);
+    });
+};
+
 const Page: Component = () => {
     const navigate = useNavigate();
     const params = useParams<{ handle?: string | undefined; }>();
-    const [lists] = createResource(() => params.handle || undefined, fetchLists, { initialValue: [] });
+    const [lists] = createResource(() => params.handle || undefined, fetchLists);
+    const [users] = createResource(lists, fetchUsers);
 
     return (
         <div>
@@ -46,6 +55,7 @@ const Page: Component = () => {
                 <input id="handle" placeholder="Enter handle" />
                 <button type="submit">Submit</button>
             </form>
+
             <Switch>
                 <Match when={lists.loading}>
                     <p>Loading...</p>
@@ -53,7 +63,8 @@ const Page: Component = () => {
                 <Match when={lists.error}>
                     <span>Error: {`${lists.error}`}</span>
                 </Match>
-                <Match when={lists()}>
+                {
+                    /* <Match when={lists()}>
                     <ul>
                         <For each={lists()}>
                             {(list) => (
@@ -64,6 +75,19 @@ const Page: Component = () => {
                             )}
                         </For>
                     </ul>
+                </Match> */
+                }
+            </Switch>
+
+            <Switch>
+                <Match when={users.loading}>
+                    <p>Loading users...</p>
+                </Match>
+                <Match when={users.error}>
+                    <span>Error: {`${users.error}`}</span>
+                </Match>
+                <Match when={users()}>
+                    <p>{users()} users</p>
                 </Match>
             </Switch>
         </div>
