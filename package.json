@@ -11,13 +11,13 @@
     },
     "license": "MIT",
     "devDependencies": {
-        "@unocss/preset-mini": "^0.64.1",
-        "@unocss/vite": "^0.64.1",
         "typescript": "^5.7.2",
         "vite": "^6.0.0",
         "vite-plugin-solid": "^2.11.0"
     },
     "dependencies": {
+        "@badrap/valita": "^0.4.2",
+        "@solidjs/router": "^0.15.2",
         "solid-js": "^1.9.3"
     },
     "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf"
