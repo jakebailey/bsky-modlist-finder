@@ -5,10 +5,10 @@ import * as v from "@badrap/valita";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 
-const ClearSkyListsResponse = v.object({
+const ClearskyListsResponse = v.object({
     data: v.object({
         lists: v.array(v.object({
-            created_at: v.string().nullable().optional(),
+            created_date: v.string(), // .nullable().optional(),
             did: v.string(),
             url: v.string(),
             name: v.string(),
@@ -17,11 +17,11 @@ const ClearSkyListsResponse = v.object({
     }),
 });
 
-const fetchLists = async (handle: string) => {
+const fetchClearskyLists = async (handle: string) => {
     const response = await fetch(`https://api.clearsky.services/api/v1/anon/get-list/${handle}`);
     const json = await response.json();
     try {
-        const parsed = ClearSkyListsResponse.parse(json, { mode: "strip" });
+        const parsed = ClearskyListsResponse.parse(json, { mode: "strip" });
         return parsed.data.lists;
     } catch (e) {
         console.error(json);
@@ -29,19 +29,59 @@ const fetchLists = async (handle: string) => {
     }
 };
 
-const fetchUsers = async (lists: Awaited<ReturnType<typeof fetchLists>>) => {
-    return new Promise<string>((resolve) => {
-        setTimeout(() => {
-            resolve(`${lists.length}`);
-        }, 1000);
-    });
+const BlueskyListResponse = v.object({
+    list: v.object({
+        purpose: v.string(),
+    }),
+});
+
+const fetchBlueskyLists = async (lists: Awaited<ReturnType<typeof fetchClearskyLists>>) => {
+    const result = [];
+    for (const list of lists) {
+        const start = list.url.lastIndexOf("/") + 1;
+        const id = list.url.slice(start);
+        const at = `at://${list.did}/app.bsky.lists/${id}`;
+        const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.graph.getList?list=${at}`);
+        const json = await response.json();
+        try {
+            const parsed = BlueskyListResponse.parse(json, { mode: "strip" });
+            if (parsed.list.purpose === "moderation") {
+                result.push(list);
+            }
+        } catch (e) {
+            console.error(json);
+            throw e;
+        }
+    }
+    return result;
+};
+
+const BlueskyProfileResponse = v.object({
+    did: v.string(),
+    handle: v.string(),
+    followersCount: v.number(),
+});
+
+const fetchBlueskyProfile = async (handle: string) => {
+    const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${handle}`);
+    const json = await response.json();
+    try {
+        const parsed = BlueskyProfileResponse.parse(json, { mode: "strip" });
+        return parsed;
+    } catch (e) {
+        console.error(json);
+        throw e;
+    }
 };
 
 const Page: Component = () => {
     const navigate = useNavigate();
     const params = useParams<{ handle?: string | undefined; }>();
-    const [lists] = createResource(() => params.handle || undefined, fetchLists);
-    const [users] = createResource(lists, fetchUsers);
+    const [clearskyLists] = createResource(() => params.handle || undefined, fetchClearskyLists);
+    const [blueskyLists] = createResource(
+        () => clearskyLists.state === "ready" ? clearskyLists() : undefined,
+        fetchBlueskyLists,
+    );
 
     return (
         <div>
@@ -57,11 +97,11 @@ const Page: Component = () => {
             </form>
 
             <Switch>
-                <Match when={lists.loading}>
-                    <p>Loading...</p>
+                <Match when={clearskyLists.loading}>
+                    <p>Fetching lists from Clearsky...</p>
                 </Match>
-                <Match when={lists.error}>
-                    <span>Error: {`${lists.error}`}</span>
+                <Match when={clearskyLists.error}>
+                    <span>Error: {`${clearskyLists.error}`}</span>
                 </Match>
                 {
                     /* <Match when={lists()}>
@@ -80,14 +120,14 @@ const Page: Component = () => {
             </Switch>
 
             <Switch>
-                <Match when={users.loading}>
-                    <p>Loading users...</p>
+                <Match when={blueskyLists.loading}>
+                    <p>Loading user info from Bluesky...</p>
                 </Match>
-                <Match when={users.error}>
-                    <span>Error: {`${users.error}`}</span>
+                <Match when={blueskyLists.error}>
+                    <span>Error: {`${blueskyLists.error}`}</span>
                 </Match>
-                <Match when={users()}>
-                    <p>{users()} users</p>
+                <Match when={blueskyLists()}>
+                    <p>{blueskyLists()?.length} users</p>
                 </Match>
             </Switch>
         </div>
