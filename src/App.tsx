@@ -3,7 +3,7 @@ import "./App.css";
 
 import * as v from "@badrap/valita";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
-import { type Component, createResource, Match, Show, Switch } from "solid-js";
+import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 
 const Response = v.object({
     data: v.object({
@@ -18,10 +18,11 @@ const Response = v.object({
 });
 
 const fetchLists = async (handle: string) => {
-    const response = await fetch(`https://api.clearsky.services/api/v1/anon/get-list/${encodeURIComponent(handle)}`);
+    const response = await fetch(`https://api.clearsky.services/api/v1/anon/get-list/${handle}`);
     const json = await response.json();
     try {
-        return Response.parse(json, { mode: "strip" });
+        const parsed = Response.parse(json, { mode: "strip" });
+        return parsed.data.lists;
     } catch (e) {
         console.error(json);
         throw e;
@@ -31,7 +32,7 @@ const fetchLists = async (handle: string) => {
 const Page: Component = () => {
     const navigate = useNavigate();
     const params = useParams<{ handle?: string | undefined; }>();
-    const [lists] = createResource(params.handle || undefined, fetchLists);
+    const [lists] = createResource(() => params.handle || undefined, fetchLists, { initialValue: [] });
 
     return (
         <div>
@@ -39,24 +40,32 @@ const Page: Component = () => {
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
-                    navigate(`/${(e.currentTarget.handle as HTMLInputElement).value}`);
+                    navigate(`/${encodeURIComponent((e.target as HTMLFormElement).handle.value)}`);
                 }}
             >
                 <input id="handle" placeholder="Enter handle" />
                 <button type="submit">Submit</button>
             </form>
-            <Show when={lists.loading}>
-                <p>Loading...</p>
-            </Show>
             <Switch>
+                <Match when={lists.loading}>
+                    <p>Loading...</p>
+                </Match>
                 <Match when={lists.error}>
                     <span>Error: {`${lists.error}`}</span>
                 </Match>
                 <Match when={lists()}>
-                    <div>{JSON.stringify(lists())}</div>
+                    <ul>
+                        <For each={lists()}>
+                            {(list) => (
+                                <li>
+                                    <a href={list.url}>{list.name}</a>
+                                    <p>{list.description}</p>
+                                </li>
+                            )}
+                        </For>
+                    </ul>
                 </Match>
             </Switch>
-            <p>hello {params.handle}</p>
         </div>
     );
 };
