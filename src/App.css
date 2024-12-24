@@ -1,0 +1,14 @@
+:root {
+    --background-body: #303030;
+    --background: #353535;
+    --background-alt: #303030;
+    --button-hover: #444;
+}
+
+form {
+    display: flex;
+}
+
+input[type=text] {
+    flex-grow: 1;
+}
