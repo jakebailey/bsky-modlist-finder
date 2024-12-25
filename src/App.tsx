@@ -2,7 +2,6 @@ import "water.css";
 import "./App.css";
 
 import { FetchHttpClient, HttpClient, HttpClientResponse } from "@effect/platform";
-import { BrowserRuntime } from "@effect/platform-browser";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
 import { Effect, Either, Schema } from "effect";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
@@ -115,7 +114,8 @@ const fetchInfo = (handle: string) =>
 const Page: Component = () => {
     const navigate = useNavigate();
     const params = useParams<{ handle?: string | undefined; }>();
-    const [info] = createResource(() => params.handle || undefined, fetchInfo);
+    const handle = params.handle || undefined;
+    const [info] = createResource(() => handle, fetchInfo);
     return (
         <div>
             <h1>Bluesky Moderation List Finder</h1>
@@ -128,6 +128,8 @@ const Page: Component = () => {
                 <input id="handle" placeholder="Enter handle" />
                 <button type="submit">Submit</button>
             </form>
+
+            {handle ? <p>Showing lists for {handle}</p> : <p>Enter a handle to see their moderation lists</p>}
 
             <Switch>
                 <Match when={info.loading}>
@@ -143,9 +145,12 @@ const Page: Component = () => {
                         <For each={info()!.lists}>
                             {(list) => (
                                 <li>
-                                    <a href={`https://bsky.app/profile/${list.profile.handle}`}>
-                                        {list.profile.handle}
-                                    </a>
+                                    <p>
+                                        <a href={`https://bsky.app/profile/${list.profile.handle}`}>
+                                            {list.profile.handle}
+                                        </a>{" "}
+                                        ({list.profile.followersCount} followers)
+                                    </p>
                                     <p>{list.list.name}</p>
                                     <Show when={list.list.description}>
                                         <p>{list.list.description}</p>
