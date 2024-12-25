@@ -1,78 +1,80 @@
 import "water.css";
 import "./App.css";
 
-import * as v from "@badrap/valita";
+import { HttpClient, HttpClientResponse } from "@effect/platform";
+import { BrowserRuntime } from "@effect/platform-browser";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
+import { Effect, Schema } from "effect";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 
-const ClearskyListsResponse = v.object({
-    data: v.object({
-        lists: v.array(v.object({
-            created_date: v.string(), // .nullable().optional(),
-            did: v.string(),
-            url: v.string(),
-            name: v.string(),
-            description: v.string().nullable().optional(),
+const ClearskyListsSchema = Schema.Struct({
+    data: Schema.Struct({
+        lists: Schema.Array(Schema.Struct({
+            did: Schema.String,
+            url: Schema.String,
+            name: Schema.String,
+            description: Schema.NullishOr(Schema.String),
         })),
     }),
 });
 
-const fetchClearskyLists = async (handle: string) => {
-    const response = await fetch(`https://api.clearsky.services/api/v1/anon/get-list/${handle}`);
-    const json = await response.json();
-    try {
-        const parsed = ClearskyListsResponse.parse(json, { mode: "strip" });
-        return parsed.data.lists;
-    } catch (e) {
-        console.error(json);
-        throw e;
-    }
-};
+const getClearskyLists = (handle: string) =>
+    Effect.gen(function*() {
+        const client = yield* HttpClient.HttpClient;
+        const response = yield* client.get(`https://api.clearsky.services/api/v1/anon/get-list/${handle}`);
+        const lists = yield* HttpClientResponse.schemaBodyJson(ClearskyListsSchema)(response);
+        return lists.data.lists;
+    });
 
-const BlueskyListResponse = v.object({
-    list: v.object({
-        purpose: v.string(),
+const BlueskyListsSchema = Schema.Struct({
+    list: Schema.Struct({
+        purpose: Schema.String,
     }),
 });
 
-const fetchBlueskyLists = async (lists: Awaited<ReturnType<typeof fetchClearskyLists>>) => {
-    const result = [];
-    for (const list of lists) {
-        const start = list.url.lastIndexOf("/") + 1;
-        const id = list.url.slice(start);
+const getBlueskyList = (list: typeof ClearskyListsSchema.Type.data.lists[number]) =>
+    Effect.gen(function*() {
+        const client = yield* HttpClient.HttpClient;
+        const id = list.url.split("/").at(-1);
         const at = `at://${list.did}/app.bsky.lists/${id}`;
-        const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.graph.getList?list=${at}`);
-        const json = await response.json();
-        try {
-            const parsed = BlueskyListResponse.parse(json, { mode: "strip" });
-            if (parsed.list.purpose === "moderation") {
-                result.push(list);
-            }
-        } catch (e) {
-            console.error(json);
-            throw e;
-        }
-    }
-    return result;
-};
+        const response = yield* client.get(`https://public.api.bsky.app/xrpc/app.bsky.graph.getList?list=${at}`);
+        const json = yield* HttpClientResponse.schemaBodyJson(BlueskyListsSchema)(response);
+        if (json.list.purpose !== "moderation") return undefined;
+        return { clearsky: list, bluesky: json.list };
+    });
 
-const BlueskyProfileResponse = v.object({
-    did: v.string(),
-    handle: v.string(),
-    followersCount: v.number(),
+const getBlueskyLists = (lists: typeof ClearskyListsSchema.Type.data.lists) =>
+    Effect.gen(function*() {
+        const [errors, resultsOrUndefined] = yield* Effect.partition(lists, getBlueskyList);
+        const results = resultsOrUndefined.filter((list) => list !== undefined);
+        return { errors, results };
+    });
+
+const BlueskyProfileSchema = Schema.Struct({
+    did: Schema.String,
+    handle: Schema.String,
+    followersCount: Schema.Number,
 });
 
-const fetchBlueskyProfile = async (handle: string) => {
-    const response = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${handle}`);
-    const json = await response.json();
-    try {
-        const parsed = BlueskyProfileResponse.parse(json, { mode: "strip" });
-        return parsed;
-    } catch (e) {
-        console.error(json);
-        throw e;
-    }
-};
+const getBlueskyProfile = (handle: string) =>
+    Effect.gen(function*() {
+        const client = yield* HttpClient.HttpClient;
+        const response = yield* client.get(
+            `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${handle}`,
+        );
+        const json = yield* HttpClientResponse.schemaBodyJson(BlueskyProfileSchema)(response);
+        return json;
+    });
+
+// handle should already be URL safe
+// const doWork = (handle: string) =>
+//     Effect.gen(function*() {
+//         const client = yield* HttpClient.HttpClient;
+//         const clearskyResponse = yield* client.get(`https://api.clearsky.services/api/v1/anon/get-list/${handle}`);
+//         const clearskyJson = yield* HttpClientResponse.schemaBodyJson(ClearskyListsSchema)(clearskyResponse);
+//         const clearskyLists = clearskyJson.data.lists;
+
+//     });
 
 const Page: Component = () => {
     const navigate = useNavigate();

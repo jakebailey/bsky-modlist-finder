@@ -17,7 +17,10 @@
     },
     "dependencies": {
         "@badrap/valita": "^0.4.2",
+        "@effect/platform": "^0.72.0",
+        "@effect/platform-browser": "^0.51.0",
         "@solidjs/router": "^0.15.2",
+        "effect": "^3.12.0",
         "solid-js": "^1.9.3",
         "water.css": "^2.1.1"
     },
