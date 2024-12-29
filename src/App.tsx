@@ -63,11 +63,12 @@ const fetchInfo = (handle: string) => {
 const Page: Component = () => {
     const navigate = useNavigate();
     const params = useParams<{ handle?: string | undefined; }>();
-    const handle = params.handle || undefined;
-    const [info] = createResource(() => handle, fetchInfo);
+    const [info] = createResource(() => params.handle || undefined, fetchInfo);
     return (
         <div>
-            <h1>Bluesky Moderation List Finder</h1>
+            {/* TODO: don't inline this */}
+            <h1 style={{ "text-align": "center" }}>Bluesky Moderation List Finder</h1>
+            <br />
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
@@ -78,7 +79,9 @@ const Page: Component = () => {
                 <button type="submit">Submit</button>
             </form>
 
-            {handle ? <p>Showing lists for {handle}</p> : <p>Enter a handle to see their moderation lists</p>}
+            {params.handle
+                ? <p>Showing lists for {params.handle}</p>
+                : <p>Enter a handle to see their moderation lists</p>}
 
             <Switch>
                 <Match when={info.loading}>
