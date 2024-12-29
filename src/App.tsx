@@ -1,74 +1,18 @@
 import "water.css";
 import "./App.css";
 
-import { FetchHttpClient, HttpClient, HttpClientResponse } from "@effect/platform";
+import { FetchHttpClient } from "@effect/platform";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
-import { Effect, Either, Schema } from "effect";
+import { Effect, Either, Logger, LogLevel } from "effect";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
-
-const ClearskyListsSchema = Schema.Struct({
-    data: Schema.Struct({
-        lists: Schema.Array(Schema.Struct({
-            did: Schema.String,
-            url: Schema.String,
-            name: Schema.String,
-            description: Schema.NullishOr(Schema.String),
-        })),
-    }),
-});
-
-const getClearskyLists = (handle: string) =>
-    Effect.gen(function*() {
-        const client = yield* HttpClient.HttpClient;
-        const response = yield* client.get(`https://api.clearsky.services/api/v1/anon/get-list/${handle}`);
-        const lists = yield* HttpClientResponse.schemaBodyJson(ClearskyListsSchema)(response);
-
-        const seen = new Set<string>();
-        return lists.data.lists.filter((list) => {
-            if (seen.has(list.url)) {
-                return false;
-            }
-            seen.add(list.url);
-            return true;
-        });
-    });
-
-const BlueskyListsSchema = Schema.Struct({
-    list: Schema.Struct({
-        purpose: Schema.String,
-    }),
-});
-
-const getBlueskyList = (did: string, url: string) =>
-    Effect.gen(function*() {
-        const client = yield* HttpClient.HttpClient;
-        const id = url.split("/").at(-1);
-        const at = `at://${did}/app.bsky.lists/${id}`;
-        const response = yield* client.get(`https://public.api.bsky.app/xrpc/app.bsky.graph.getList?list=${at}`);
-        const json = yield* HttpClientResponse.schemaBodyJson(BlueskyListsSchema)(response);
-        return json.list;
-    });
-
-const BlueskyProfileSchema = Schema.Struct({
-    did: Schema.String,
-    handle: Schema.String,
-    followersCount: Schema.Number,
-});
-
-const getBlueskyProfile = (handle: string) =>
-    Effect.gen(function*() {
-        const client = yield* HttpClient.HttpClient;
-        const response = yield* client.get(
-            `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${handle}`,
-        );
-        const json = yield* HttpClientResponse.schemaBodyJson(BlueskyProfileSchema)(response);
-        return json;
-    });
+import { getBlueskyList, getBlueskyProfile, getClearskyLists } from "./apis";
 
 // handle should already be URL safe
 const doWork = (queryHandle: string) =>
     Effect.gen(function*() {
+        yield* Effect.logDebug(`Fetching profile for ${queryHandle}`);
         const profile = yield* getBlueskyProfile(queryHandle);
+        yield* Effect.logDebug(`Fetching lists for ${queryHandle}`);
         const clearskyLists = yield* getClearskyLists(queryHandle);
 
         const lists = [];
@@ -103,13 +47,18 @@ const doWork = (queryHandle: string) =>
         lists.sort((a, b) => b.profile.followersCount - a.profile.followersCount);
 
         return { profile, lists, blueskyErrors };
-    });
+    }).pipe(Effect.scoped, Effect.provide(FetchHttpClient.layer));
 
-const fetchInfo = (handle: string) =>
-    Effect.runPromise(
+const fetchInfo = (handle: string) => {
+    return Effect.runPromise(
         doWork(handle)
-            .pipe(Effect.scoped, Effect.provide(FetchHttpClient.layer)),
+            .pipe(
+                Effect.scoped,
+                Effect.provide(FetchHttpClient.layer),
+                Logger.withMinimumLogLevel(LogLevel.Debug),
+            ),
     );
+};
 
 const Page: Component = () => {
     const navigate = useNavigate();
