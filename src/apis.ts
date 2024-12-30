@@ -12,21 +12,21 @@ const ClearskyListsSchema = Schema.Struct({
     }),
 });
 
+const decodeClearskyListsSchema = HttpClientResponse.schemaBodyJson(ClearskyListsSchema);
+
 export const getClearskyLists = (handle: string) =>
     Effect.gen(function*() {
         const client = yield* HttpClient.HttpClient;
         const u = `https://api.clearsky.services/api/v1/anon/get-list/${handle}`;
         yield* Effect.logDebug(`Fetching ${u}`);
         const response = yield* client.get(u);
-        const lists = yield* HttpClientResponse.schemaBodyJson(ClearskyListsSchema)(response);
+        const lists = yield* decodeClearskyListsSchema(response);
 
         yield* Effect.logDebug(`Got ${lists.data.lists.length} lists`);
 
         const seen = new Set<string>();
         return lists.data.lists.filter((list) => {
-            if (seen.has(list.url)) {
-                return false;
-            }
+            if (seen.has(list.url)) return false;
             seen.add(list.url);
             return true;
         });
@@ -41,21 +41,24 @@ class BlueskyError extends Data.TaggedError("BlueskyError")<typeof BlueskyErrorS
 
 const decodeBlueskyResponse = <A, I, R, E>(
     schema: Schema.Schema<A, I, R>,
-    response: HttpIncomingMessage.HttpIncomingMessage<E>,
-) => Effect.gen(function*() {
-    const s = Schema.Union(BlueskyErrorSchema, schema);
-    const json = yield* HttpClientResponse.schemaBodyJson(s)(response);
-    if (typeof json === "object" && json !== null && "error" in json) {
-        yield* new BlueskyError(json);
-    }
-    return json as A;
-});
+) =>
+<E>(response: HttpIncomingMessage.HttpIncomingMessage<E>) =>
+    Effect.gen(function*() {
+        const s = Schema.Union(BlueskyErrorSchema, schema);
+        const json = yield* HttpClientResponse.schemaBodyJson(s)(response);
+        if (typeof json === "object" && json !== null && "error" in json) {
+            yield* new BlueskyError(json);
+        }
+        return json as A;
+    });
 
 const BlueskyListsSchema = Schema.Struct({
     list: Schema.Struct({
         purpose: Schema.String,
     }),
 });
+
+const decodeBlueskyListsSchema = decodeBlueskyResponse(BlueskyListsSchema);
 
 export const getBlueskyList = (did: string, url: string) =>
     Effect.gen(function*() {
@@ -65,7 +68,7 @@ export const getBlueskyList = (did: string, url: string) =>
         const u = `https://public.api.bsky.app/xrpc/app.bsky.graph.getList?list=${at}`;
         yield* Effect.logDebug(`Fetching ${u}`);
         const response = yield* client.get(u);
-        const json = yield* decodeBlueskyResponse(BlueskyListsSchema, response);
+        const json = yield* decodeBlueskyListsSchema(response);
         return json.list;
     });
 
@@ -75,9 +78,13 @@ const BlueskyProfileSchema = Schema.Struct({
     followersCount: Schema.Number,
 });
 
+const decodeBlueskyProfileSchema = decodeBlueskyResponse(BlueskyProfileSchema);
+
 const BlueskyProfilesSchema = Schema.Struct({
     profiles: Schema.Array(BlueskyProfileSchema),
 });
+
+const decodeBlueskyProfilesSchema = decodeBlueskyResponse(BlueskyProfilesSchema);
 
 function chunked<A>(array: A[], size: number): A[][] {
     const result = [];
@@ -97,7 +104,7 @@ export const getBlueskyProfiles = (handles: string[]) =>
             const u = `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfiles?${params}`;
             yield* Effect.logDebug(`Fetching ${u}`);
             const response = yield* client.get(u);
-            const json = yield* decodeBlueskyResponse(BlueskyProfilesSchema, response);
+            const json = yield* decodeBlueskyProfilesSchema(response);
             for (const profile of json.profiles) {
                 map.set(profile.handle, profile);
                 map.set(profile.did, profile);
@@ -113,6 +120,6 @@ export const getBlueskyProfile = (handle: string) =>
         const u = `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${handle}`;
         yield* Effect.logDebug(`Fetching ${u}`);
         const response = yield* client.get(u);
-        const json = yield* decodeBlueskyResponse(BlueskyProfileSchema, response);
+        const json = yield* decodeBlueskyProfileSchema(response);
         return json;
     });

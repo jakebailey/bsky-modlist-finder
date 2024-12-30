@@ -57,6 +57,8 @@ const fetchInfo = (handle: string) => {
     );
 };
 
+const profilePrefix = "https://bsky.app/profile/";
+
 const Page: Component = () => {
     const navigate = useNavigate();
     const params = useParams<{ handle?: string | undefined; }>();
@@ -69,10 +71,15 @@ const Page: Component = () => {
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
-                    navigate(`/${encodeURIComponent((e.target as HTMLFormElement).handle.value)}`);
+                    let value = (e.target as HTMLFormElement).handle.value;
+                    if (value.startsWith(profilePrefix)) {
+                        value = value.slice(profilePrefix.length);
+                        value = value.split("/")[0];
+                    }
+                    navigate(`/${encodeURIComponent(value)}`);
                 }}
             >
-                <input id="handle" placeholder="Enter handle" />
+                <input id="handle" placeholder="Enter handle, DID, or profile link" style={{ width: "100%" }} />
                 <button type="submit">Submit</button>
             </form>
 
@@ -95,7 +102,7 @@ const Page: Component = () => {
                                 <li>
                                     <p>
                                         <a href={list.list.url}>{list.list.name}</a> by{" "}
-                                        <a href={`https://bsky.app/profile/${list.profile.handle}`}>
+                                        <a href={`${profilePrefix}${list.profile.handle}`}>
                                             {list.profile.handle}
                                         </a>{" "}
                                         ({list.profile.followersCount} followers)
