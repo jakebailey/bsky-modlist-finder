@@ -1,4 +1,4 @@
-import "water.css";
+import "water.css/out/dark.min.css";
 import "./App.css";
 
 import { FetchHttpClient } from "@effect/platform";
