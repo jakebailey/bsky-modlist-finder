@@ -37,7 +37,7 @@ const doWork = (queryHandle: string) =>
         const lists = [];
         for (const list of modClearskyLists) {
             const profile = profiles.get(list.did);
-            if (!profile) {
+            if (!profile || profile.handle === "handle.invalid") {
                 continue;
             }
             lists.push({ profile, list });
