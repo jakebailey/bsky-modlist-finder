@@ -81,7 +81,12 @@ const Page: Component = () => {
                     navigate(`/${encodeURIComponent(value)}`);
                 }}
             >
-                <input id="handle" type="text" placeholder="Enter handle, DID, or profile link" />
+                <input
+                    id="handle"
+                    type="text"
+                    placeholder="Enter handle, DID, or profile link"
+                    value={params.handle || ""} // In SolidJS, this is _not_ a controlled component; just the initial value
+                />
                 <button type="submit">Submit</button>
             </form>
 
@@ -89,13 +94,13 @@ const Page: Component = () => {
                 <blockquote>
                     <p>
                         <a href={`${profilePrefix}${params.handle}`}>{params.handle}</a>
-                        <Show when={info()?.profile.displayName}>
+                        <Show when={info.state === "ready"}>
                             {" "}
-                            ({info()?.profile.displayName})
+                            ({info()!.profile.displayName})
                         </Show>
                     </p>
-                    <Show when={info()?.profile.description}>
-                        <p>{info()?.profile.description}</p>
+                    <Show when={info.state === "ready"}>
+                        <p>{info()!.profile.description}</p>
                     </Show>
                 </blockquote>
             </Show>
