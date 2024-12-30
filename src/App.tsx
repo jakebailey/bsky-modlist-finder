@@ -85,18 +85,20 @@ const Page: Component = () => {
                 <button type="submit">Submit</button>
             </form>
 
-            <blockquote>
-                <p>
-                    <a href={`${profilePrefix}${params.handle}`}>{params.handle}</a>
-                    <Show when={info()?.profile.displayName}>
-                        {" "}
-                        ({info()?.profile.displayName})
+            <Show when={params.handle}>
+                <blockquote>
+                    <p>
+                        <a href={`${profilePrefix}${params.handle}`}>{params.handle}</a>
+                        <Show when={info()?.profile.displayName}>
+                            {" "}
+                            ({info()?.profile.displayName})
+                        </Show>
+                    </p>
+                    <Show when={info()?.profile.description}>
+                        <p>{info()?.profile.description}</p>
                     </Show>
-                </p>
-                <Show when={info()?.profile.description}>
-                    <p>{info()?.profile.description}</p>
-                </Show>
-            </blockquote>
+                </blockquote>
+            </Show>
 
             <Switch>
                 <Match when={info.loading}>
@@ -127,6 +129,13 @@ const Page: Component = () => {
                     </ul>
                 </Match>
             </Switch>
+
+            <p>
+                This site queries the Bluesky and Clearsky APIs directly in your browser. No data is stored. Note that
+                all content is generated from those APIs; I can't be responsible for anything that shows up here, and
+                list creator follower count is not neccesarily a good measure of quality or trustworthiness. Use these
+                lists at your own risk.
+            </p>
         </div>
     );
 };
