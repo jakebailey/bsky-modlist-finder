@@ -2,8 +2,9 @@ import "water.css";
 import "./App.css";
 
 import { FetchHttpClient } from "@effect/platform";
+import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
 import { Effect, Logger, LogLevel } from "effect";
-import { type Component, createResource, createSignal, For, Match, Show, Switch } from "solid-js";
+import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 import { getBlueskyList, getBlueskyProfile, getBlueskyProfiles, getClearskyLists } from "./apis";
 
 // handle should already be URL safe
@@ -61,9 +62,10 @@ const fetchInfo = (handle: string) => {
 
 const profilePrefix = "https://bsky.app/profile/";
 
-const App: Component = () => {
-    const [handle, setHandle] = createSignal<string | undefined>(undefined);
-    const [info] = createResource(handle, fetchInfo);
+const Page: Component = () => {
+    const navigate = useNavigate();
+    const params = useParams<{ handle?: string | undefined; }>();
+    const [info] = createResource(() => params.handle || undefined, fetchInfo);
     return (
         <div>
             <h1>Bluesky Moderation List Finder</h1>
@@ -76,16 +78,16 @@ const App: Component = () => {
                         value = value.slice(profilePrefix.length);
                         value = value.split("/")[0];
                     }
-                    setHandle(encodeURIComponent(value));
+                    navigate(`/${encodeURIComponent(value)}`);
                 }}
             >
                 <input id="handle" type="text" placeholder="Enter handle, DID, or profile link" />
                 <button type="submit">Submit</button>
             </form>
 
-            <Show when={handle()}>
-                <p>Showing lists for {handle()}</p>
-            </Show>
+            {params.handle
+                ? <p>Showing lists for {params.handle}</p>
+                : <p>Enter a handle to see their moderation lists</p>}
 
             <Switch>
                 <Match when={info.loading}>
@@ -131,6 +133,14 @@ const App: Component = () => {
                 </Match>
             </Switch>
         </div>
+    );
+};
+
+const App: Component = () => {
+    return (
+        <HashRouter root={(props) => <>{props.children}</>}>
+            <Route path="/:handle?" component={Page} />
+        </HashRouter>
     );
 };
 
