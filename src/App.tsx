@@ -85,9 +85,18 @@ const Page: Component = () => {
                 <button type="submit">Submit</button>
             </form>
 
-            <Show when={params.handle}>
-                <p>Showing lists for {params.handle}</p>
-            </Show>
+            <blockquote>
+                <p>
+                    <a href={`${profilePrefix}${params.handle}`}>{params.handle}</a>
+                    <Show when={info()?.profile.displayName}>
+                        {" "}
+                        ({info()?.profile.displayName})
+                    </Show>
+                </p>
+                <Show when={info()?.profile.description}>
+                    <p>{info()?.profile.description}</p>
+                </Show>
+            </blockquote>
 
             <Switch>
                 <Match when={info.loading}>
@@ -97,20 +106,6 @@ const Page: Component = () => {
                     <span>Error: {`${info.error}`}</span>
                 </Match>
                 <Match when={info()}>
-                    <details>
-                        <summary>Profile</summary>
-                        <p>
-                            <a href={`${profilePrefix}${info()!.profile.handle}`}>{info()!.profile.handle}</a>
-                            <Show when={info()!.profile.displayName}>
-                                {" "}
-                                ({info()!.profile.displayName})
-                            </Show>
-                        </p>
-                        <Show when={info()!.profile.description}>
-                            <p>{info()!.profile.description}</p>
-                        </Show>
-                    </details>
-
                     <p>{info()!.lists.length} moderation lists</p>
                     <ul>
                         <For each={info()!.lists}>
