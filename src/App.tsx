@@ -68,8 +68,7 @@ const Page: Component = () => {
     const [info] = createResource(() => params.handle || undefined, fetchInfo);
     return (
         <div>
-            {/* TODO: don't inline */}
-            <h1 style={{ "text-align": "center" }}>Bluesky Moderation List Finder</h1>
+            <h1>Bluesky Moderation List Finder</h1>
             <br />
             <form
                 onSubmit={(e) => {
@@ -82,7 +81,7 @@ const Page: Component = () => {
                     navigate(`/${encodeURIComponent(value)}`);
                 }}
             >
-                <input id="handle" placeholder="Enter handle, DID, or profile link" style={{ width: "100%" }} />
+                <input id="handle" placeholder="Enter handle, DID, or profile link" />
                 <button type="submit">Submit</button>
             </form>
 
@@ -98,6 +97,20 @@ const Page: Component = () => {
                     <span>Error: {`${info.error}`}</span>
                 </Match>
                 <Match when={info()}>
+                    <details>
+                        <summary>Profile</summary>
+                        <p>
+                            <a href={`${profilePrefix}${info()!.profile.handle}`}>{info()!.profile.handle}</a>
+                            <Show when={info()!.profile.displayName}>
+                                {" "}
+                                ({info()!.profile.displayName})
+                            </Show>
+                        </p>
+                        <Show when={info()!.profile.description}>
+                            <p>{info()!.profile.description}</p>
+                        </Show>
+                    </details>
+
                     <p>{info()!.lists.length} moderation lists</p>
                     <ul>
                         <For each={info()!.lists}>

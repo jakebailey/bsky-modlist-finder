@@ -75,7 +75,13 @@ export const getBlueskyList = (did: string, url: string) =>
 const BlueskyProfileSchema = Schema.Struct({
     did: Schema.String,
     handle: Schema.String,
+    displayName: Schema.String,
+    avatar: Schema.String,
+    createdAt: Schema.String,
+    description: Schema.NullishOr(Schema.String),
     followersCount: Schema.Number,
+    followsCount: Schema.Number,
+    postsCount: Schema.Number,
 });
 
 const decodeBlueskyProfileSchema = decodeBlueskyResponse(BlueskyProfileSchema);
