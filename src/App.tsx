@@ -81,7 +81,7 @@ const Page: Component = () => {
                     navigate(`/${encodeURIComponent(value)}`);
                 }}
             >
-                <input id="handle" placeholder="Enter handle, DID, or profile link" />
+                <input id="handle" type="text" placeholder="Enter handle, DID, or profile link" />
                 <button type="submit">Submit</button>
             </form>
 
