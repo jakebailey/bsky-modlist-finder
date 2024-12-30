@@ -3,7 +3,7 @@ import "./App.css";
 
 import { FetchHttpClient } from "@effect/platform";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
-import { Effect, Either, Logger, LogLevel, Stream } from "effect";
+import { Effect, Either, Logger, LogLevel } from "effect";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 import { getBlueskyList, getBlueskyProfile, getBlueskyProfiles, getClearskyLists } from "./apis";
 
