@@ -85,9 +85,9 @@ const Page: Component = () => {
                 <button type="submit">Submit</button>
             </form>
 
-            {params.handle
-                ? <p>Showing lists for {params.handle}</p>
-                : <p>Enter a handle to see their moderation lists</p>}
+            <Show when={params.handle}>
+                <p>Showing lists for {params.handle}</p>
+            </Show>
 
             <Switch>
                 <Match when={info.loading}>
