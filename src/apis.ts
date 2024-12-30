@@ -1,6 +1,5 @@
-import { HttpClient, HttpClientError, HttpClientResponse, HttpIncomingMessage } from "@effect/platform";
-import { Data, Effect, Either, Request, RequestResolver, Schema } from "effect";
-import { ParseError } from "effect/ParseResult";
+import { HttpClient, HttpClientResponse, HttpIncomingMessage } from "@effect/platform";
+import { Data, Effect, Schema } from "effect";
 
 const ClearskyListsSchema = Schema.Struct({
     data: Schema.Struct({
