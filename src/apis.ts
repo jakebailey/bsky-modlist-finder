@@ -75,8 +75,8 @@ export const getBlueskyList = (did: string, url: string) =>
 const BlueskyProfileSchema = Schema.Struct({
     did: Schema.String,
     handle: Schema.String,
-    displayName: Schema.String,
-    avatar: Schema.String,
+    displayName: Schema.NullishOr(Schema.String),
+    avatar: Schema.NullishOr(Schema.String),
     createdAt: Schema.String,
     description: Schema.NullishOr(Schema.String),
     followersCount: Schema.Number,
