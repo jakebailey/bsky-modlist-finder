@@ -3,7 +3,7 @@ import "./App.css";
 
 import { FetchHttpClient } from "@effect/platform";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
-import { Effect, Either, Logger, LogLevel } from "effect";
+import { Effect, Logger, LogLevel } from "effect";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 import { getBlueskyList, getBlueskyProfile, getBlueskyProfiles, getClearskyLists } from "./apis";
 
@@ -25,15 +25,18 @@ const doWork = (queryHandle: string) =>
             (list) => list.purpose === "app.bsky.graph.defs#modlist",
         ).map(({ list }) => list);
 
-        const profiles = yield* Effect.either(getBlueskyProfiles(modClearskyLists.map((list) => list.did)));
-        if (Either.isLeft(profiles)) {
-            blueskyErrors.push(profiles.left);
+        const profiles = yield* Effect.orElseSucceed(
+            getBlueskyProfiles(modClearskyLists.map((list) => list.did)),
+            () => undefined,
+        );
+
+        if (!profiles?.size) {
             return { profile, lists: [], blueskyErrors };
         }
 
         const lists = [];
         for (const list of modClearskyLists) {
-            const profile = profiles.right.get(list.did);
+            const profile = profiles.get(list.did);
             if (!profile) {
                 continue;
             }
