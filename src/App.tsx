@@ -3,9 +3,9 @@ import "./App.css";
 
 import { FetchHttpClient } from "@effect/platform";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
-import { Effect, Either, Logger, LogLevel } from "effect";
+import { Effect, Either, Logger, LogLevel, Stream } from "effect";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
-import { getBlueskyList, getBlueskyProfile, getClearskyLists } from "./apis";
+import { getBlueskyList, getBlueskyProfile, getBlueskyProfiles, getClearskyLists } from "./apis";
 
 // handle should already be URL safe
 const doWork = (queryHandle: string) =>
@@ -15,32 +15,29 @@ const doWork = (queryHandle: string) =>
         yield* Effect.logDebug(`Fetching lists for ${queryHandle}`);
         const clearskyLists = yield* getClearskyLists(queryHandle);
 
+        const [blueskyErrors, clearskyListsWithPurpose] = yield* Effect.partition(
+            clearskyLists,
+            (list) => getBlueskyList(list.did, list.url).pipe(Effect.map(({ purpose }) => ({ list, purpose }))),
+            { concurrency: 5 },
+        );
+
+        const modClearskyLists = clearskyListsWithPurpose.filter(
+            (list) => list.purpose === "app.bsky.graph.defs#modlist",
+        ).map(({ list }) => list);
+
+        const profiles = yield* Effect.either(getBlueskyProfiles(modClearskyLists.map((list) => list.did)));
+        if (Either.isLeft(profiles)) {
+            blueskyErrors.push(profiles.left);
+            return { profile, lists: [], blueskyErrors };
+        }
+
         const lists = [];
-        const blueskyErrors = [];
-
-        for (const list of clearskyLists) {
-            const eitherBlueskyList = yield* Effect.either(getBlueskyList(list.did, list.url));
-            if (Either.isLeft(eitherBlueskyList)) {
-                blueskyErrors.push(eitherBlueskyList.left);
+        for (const list of modClearskyLists) {
+            const profile = profiles.right.get(list.did);
+            if (!profile) {
                 continue;
             }
-
-            const blueskyList = eitherBlueskyList.right;
-            if (blueskyList.purpose !== "app.bsky.graph.defs#modlist") {
-                continue;
-            }
-
-            const eitherBlueskyProfile = yield* Effect.either(getBlueskyProfile(list.did));
-            if (Either.isLeft(eitherBlueskyProfile)) {
-                blueskyErrors.push(eitherBlueskyProfile.left);
-                continue;
-            }
-
-            const blueskyProfile = eitherBlueskyProfile.right;
-            lists.push({
-                profile: blueskyProfile,
-                list,
-            });
+            lists.push({ profile, list });
         }
 
         // sort descending by followers count
@@ -66,7 +63,7 @@ const Page: Component = () => {
     const [info] = createResource(() => params.handle || undefined, fetchInfo);
     return (
         <div>
-            {/* TODO: don't inline this */}
+            {/* TODO: don't inline */}
             <h1 style={{ "text-align": "center" }}>Bluesky Moderation List Finder</h1>
             <br />
             <form
@@ -91,19 +88,18 @@ const Page: Component = () => {
                     <span>Error: {`${info.error}`}</span>
                 </Match>
                 <Match when={info()}>
-                    <p>{info()!.profile.handle}</p>
                     <p>{info()!.lists.length} moderation lists</p>
                     <ul>
                         <For each={info()!.lists}>
                             {(list) => (
                                 <li>
                                     <p>
+                                        <a href={list.list.url}>{list.list.name}</a> by{" "}
                                         <a href={`https://bsky.app/profile/${list.profile.handle}`}>
                                             {list.profile.handle}
                                         </a>{" "}
                                         ({list.profile.followersCount} followers)
                                     </p>
-                                    <p>{list.list.name}</p>
                                     <Show when={list.list.description}>
                                         <p>{list.list.description}</p>
                                     </Show>
