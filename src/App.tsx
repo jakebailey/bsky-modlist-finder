@@ -15,7 +15,7 @@ const doWork = (queryHandle: string) =>
         yield* Effect.logDebug(`Fetching lists for ${queryHandle}`);
         const clearskyLists = yield* getClearskyLists(queryHandle);
 
-        const [blueskyErrors, clearskyListsWithPurpose] = yield* Effect.partition(
+        const [, clearskyListsWithPurpose] = yield* Effect.partition(
             clearskyLists,
             (list) => getBlueskyList(list.did, list.url).pipe(Effect.map(({ purpose }) => ({ list, purpose }))),
             { concurrency: 5 },
@@ -31,7 +31,7 @@ const doWork = (queryHandle: string) =>
         );
 
         if (!profiles?.size) {
-            return { profile, lists: [], blueskyErrors };
+            return { profile, lists: [] };
         }
 
         const lists = [];
@@ -46,7 +46,7 @@ const doWork = (queryHandle: string) =>
         // sort descending by followers count
         lists.sort((a, b) => b.profile.followersCount - a.profile.followersCount);
 
-        return { profile, lists, blueskyErrors };
+        return { profile, lists };
     }).pipe(Effect.scoped, Effect.provide(FetchHttpClient.layer));
 
 const fetchInfo = (handle: string) => {
@@ -115,12 +115,6 @@ const Page: Component = () => {
                                     </Show>
                                 </li>
                             )}
-                        </For>
-                    </ul>
-                    <p>{info()!.blueskyErrors.length} errors</p>
-                    <ul>
-                        <For each={info()!.blueskyErrors}>
-                            {(error) => <li>{`${error}`}</li>}
                         </For>
                     </ul>
                 </Match>
