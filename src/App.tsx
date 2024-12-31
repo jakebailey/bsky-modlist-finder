@@ -18,7 +18,7 @@ const doWork = (queryHandle: string) =>
         const [, clearskyListsWithPurpose] = yield* Effect.partition(
             clearskyLists,
             (list) => getBlueskyList(list.did, list.url).pipe(Effect.map(({ purpose }) => ({ list, purpose }))),
-            { concurrency: 5 },
+            { concurrency: 20 },
         );
 
         const modClearskyLists = clearskyListsWithPurpose.filter(
