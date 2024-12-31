@@ -12,27 +12,50 @@ const ClearskyListsSchema = Schema.Struct({
     }),
 });
 
+type ClearskyList = typeof ClearskyListsSchema.Type.data.lists[number];
+
 const decodeClearskyListsSchema = HttpClientResponse.schemaBodyJson(ClearskyListsSchema);
+
+const getClearskyListsWorker = (handle: string, page: number, rateLimit: RateLimiter.RateLimiter) =>
+    Effect.gen(function*() {
+        const client = yield* HttpClient.HttpClient;
+        const u = `https://api.clearsky.services/api/v1/anon/get-list/${handle}${page ? `/${page + 1}` : ""}`;
+        yield* Effect.logDebug(`Fetching ${u}`);
+        const response = yield* rateLimit(client.get(u));
+        const lists = yield* decodeClearskyListsSchema(response);
+        return lists.data.lists;
+    });
 
 export const getClearskyLists = (handle: string) =>
     Effect.gen(function*() {
         // https://github.com/ClearskyApp06/clearskyservices/blob/main/api.md#rate-limiting
         const rateLimit = yield* RateLimiter.make({ limit: 5, interval: "1 second" });
 
-        const client = yield* HttpClient.HttpClient;
-        const u = `https://api.clearsky.services/api/v1/anon/get-list/${handle}`;
-        yield* Effect.logDebug(`Fetching ${u}`);
-        const response = yield* rateLimit(client.get(u));
-        const lists = yield* decodeClearskyListsSchema(response);
-
-        yield* Effect.logDebug(`Got ${lists.data.lists.length} lists`);
-
         const seen = new Set<string>();
-        return lists.data.lists.filter((list) => {
-            if (seen.has(list.url)) return false;
-            seen.add(list.url);
-            return true;
-        });
+        const allLists: ClearskyList[] = [];
+        const addLists = (lists: readonly ClearskyList[]) => {
+            for (const list of lists) {
+                if (seen.has(list.url)) continue;
+                seen.add(list.url);
+                allLists.push(list);
+            }
+        };
+
+        // Clearsky returns 100 lists per page
+        for (let page = 0; page < 3; page++) {
+            if (page === 1) {
+                // TODO: binary search through page numbers to see how much work we would have to do
+                yield* Effect.logDebug(`More than one page of Clearsky lists...`);
+            }
+
+            const lists = yield* getClearskyListsWorker(handle, page, rateLimit);
+            yield* Effect.logDebug(`Got ${lists.length} lists`);
+            addLists(lists);
+
+            if (lists.length < 100) break;
+        }
+
+        return allLists;
     });
 
 const BlueskyErrorSchema = Schema.Struct({
