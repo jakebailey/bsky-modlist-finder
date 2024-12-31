@@ -1,5 +1,5 @@
 import { HttpClient, HttpClientResponse, HttpIncomingMessage } from "@effect/platform";
-import { Data, Effect, Schema } from "effect";
+import { Data, Effect, RateLimiter, Schema } from "effect";
 
 const ClearskyListsSchema = Schema.Struct({
     data: Schema.Struct({
@@ -16,10 +16,13 @@ const decodeClearskyListsSchema = HttpClientResponse.schemaBodyJson(ClearskyList
 
 export const getClearskyLists = (handle: string) =>
     Effect.gen(function*() {
+        // https://github.com/ClearskyApp06/clearskyservices/blob/main/api.md#rate-limiting
+        const rateLimit = yield* RateLimiter.make({ limit: 5, interval: "1 second" });
+
         const client = yield* HttpClient.HttpClient;
         const u = `https://api.clearsky.services/api/v1/anon/get-list/${handle}`;
         yield* Effect.logDebug(`Fetching ${u}`);
-        const response = yield* client.get(u);
+        const response = yield* rateLimit(client.get(u));
         const lists = yield* decodeClearskyListsSchema(response);
 
         yield* Effect.logDebug(`Got ${lists.data.lists.length} lists`);
