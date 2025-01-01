@@ -45,7 +45,7 @@ export const getClearskyLists = (handle: string) =>
         for (let page = 0; page < 3; page++) {
             if (page === 1) {
                 // TODO: binary search through page numbers to see how much work we would have to do
-                yield* Effect.logDebug(`More than one page of Clearsky lists...`);
+                yield* Effect.logWarning(`More than one page of Clearsky lists...`);
             }
 
             const lists = yield* getClearskyListsWorker(handle, page, rateLimit);

@@ -10,9 +10,9 @@ import { getBlueskyList, getBlueskyProfile, getBlueskyProfiles, getClearskyLists
 // handle should already be URL safe
 const doWork = (queryHandle: string) =>
     Effect.gen(function*() {
-        yield* Effect.logDebug(`Fetching profile for ${queryHandle}`);
+        yield* Effect.log(`Fetching profile for ${queryHandle}`);
         const profile = yield* getBlueskyProfile(queryHandle);
-        yield* Effect.logDebug(`Fetching lists for ${queryHandle}`);
+        yield* Effect.log(`Fetching lists for ${queryHandle}`);
         const clearskyLists = yield* getClearskyLists(queryHandle);
 
         const [, clearskyListsWithPurpose] = yield* Effect.partition(
