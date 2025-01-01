@@ -91,7 +91,7 @@ const Page: Component = () => {
                     id="handle"
                     type="text"
                     placeholder="Enter handle, DID, or profile link"
-                    value={params.handle || ""} // In SolidJS, this is _not_ a controlled component; just the initial value
+                    value={decodeURIComponent(params.handle || "")}
                 />
                 <button type="submit">Submit</button>
             </form>
