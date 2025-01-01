@@ -94,7 +94,7 @@ const Page: Component = () => {
                     placeholder="Enter handle, DID, or profile link"
                     value={decodeURIComponent(params.handle || "")}
                 />
-                <button type="submit">Submit</button>
+                <button type="submit">Search</button>
             </form>
 
             <Show when={params.handle}>
