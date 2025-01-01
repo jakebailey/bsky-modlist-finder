@@ -78,6 +78,9 @@ const Page: Component = () => {
                         value = value.slice(profilePrefix.length);
                         value = value.split("/")[0];
                     }
+                    if (value.startsWith("@")) {
+                        value = value.slice(1);
+                    }
                     navigate(`/${encodeURIComponent(value)}`);
                 }}
             >
