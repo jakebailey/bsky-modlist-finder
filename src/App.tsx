@@ -81,6 +81,9 @@ const Page: Component = () => {
                     if (value.startsWith("@")) {
                         value = value.slice(1);
                     }
+                    if (value.startsWith("at://")) {
+                        value = value.slice("at://".length);
+                    }
                     navigate(`/${encodeURIComponent(value)}`);
                 }}
             >
