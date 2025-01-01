@@ -74,6 +74,7 @@ const Page: Component = () => {
                 onSubmit={(e) => {
                     e.preventDefault();
                     let value = (e.target as HTMLFormElement).handle.value;
+                    value = value.trim();
                     if (value.startsWith(profilePrefix)) {
                         value = value.slice(profilePrefix.length);
                         value = value.split("/")[0];
