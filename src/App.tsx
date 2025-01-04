@@ -93,6 +93,7 @@ const Page: Component = () => {
                     type="text"
                     placeholder="Enter handle, DID, or profile link"
                     value={decodeURIComponent(params.handle || "")}
+                    autofocus
                 />
                 <button type="submit">Search</button>
             </form>
