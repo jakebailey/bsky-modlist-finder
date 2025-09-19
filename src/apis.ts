@@ -1,4 +1,6 @@
-import { HttpClient, HttpClientResponse, HttpIncomingMessage } from "@effect/platform";
+import * as HttpClient from "@effect/platform/HttpClient";
+import * as HttpClientResponse from "@effect/platform/HttpClientResponse";
+import * as HttpIncomingMessage from "@effect/platform/HttpIncomingMessage";
 import { Data, Effect, RateLimiter, Schema } from "effect";
 
 const ClearskyListsSchema = Schema.Struct({

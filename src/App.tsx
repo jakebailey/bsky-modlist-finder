@@ -1,7 +1,7 @@
 import "water.css/out/dark.min.css";
 import "./App.css";
 
-import { FetchHttpClient } from "@effect/platform";
+import * as FetchHttpClient from "@effect/platform/FetchHttpClient";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
 import { Effect, Logger, LogLevel } from "effect";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
