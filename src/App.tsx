@@ -53,16 +53,10 @@ const doWork = (queryHandle: string) =>
         Effect.provide(FetchHttpClient.layer),
         Effect.provide(RateLimiter.layer),
         Effect.provide(RateLimiter.layerStoreMemory),
+        Effect.provideService(References.MinimumLogLevel, "Debug"),
     );
 
-const fetchInfo = (handle: string) => {
-    return Effect.runPromise(
-        doWork(handle)
-            .pipe(
-                Effect.provideService(References.MinimumLogLevel, "Debug"),
-            ),
-    );
-};
+const fetchInfo = (handle: string) => Effect.runPromise(doWork(handle));
 
 const profilePrefix = "https://bsky.app/profile/";
 
