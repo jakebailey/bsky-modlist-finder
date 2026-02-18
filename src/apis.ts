@@ -1,7 +1,8 @@
-import * as HttpClient from "@effect/platform/HttpClient";
-import * as HttpClientResponse from "@effect/platform/HttpClientResponse";
-import * as HttpIncomingMessage from "@effect/platform/HttpIncomingMessage";
-import { Data, Effect, RateLimiter, Schema } from "effect";
+import { Data, Effect, Schema } from "effect";
+import * as HttpClient from "effect/unstable/http/HttpClient";
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
+import * as HttpIncomingMessage from "effect/unstable/http/HttpIncomingMessage";
+import { RateLimiter } from "effect/unstable/persistence";
 
 const ClearskyListsSchema = Schema.Struct({
     data: Schema.Struct({
@@ -18,21 +19,22 @@ type ClearskyList = typeof ClearskyListsSchema.Type.data.lists[number];
 
 const decodeClearskyListsSchema = HttpClientResponse.schemaBodyJson(ClearskyListsSchema);
 
-const getClearskyListsWorker = (handle: string, page: number, rateLimit: RateLimiter.RateLimiter) =>
+const getClearskyListsWorker = (handle: string, page: number) =>
     Effect.gen(function*() {
         const client = yield* HttpClient.HttpClient;
+        const withLimiter = yield* RateLimiter.makeWithRateLimiter;
         const u = `https://api.clearsky.services/api/v1/anon/get-list/${handle}${page ? `/${page + 1}` : ""}`;
         yield* Effect.logDebug(`Fetching ${u}`);
-        const response = yield* rateLimit(client.get(u));
+        // https://github.com/ClearskyApp06/clearskyservices/blob/main/api.md#rate-limiting
+        const response = yield* withLimiter({ key: "clearsky", limit: 5, window: "1 second", onExceeded: "delay" })(
+            client.get(u),
+        );
         const lists = yield* decodeClearskyListsSchema(response);
         return lists.data.lists;
     });
 
 export const getClearskyLists = (handle: string) =>
     Effect.gen(function*() {
-        // https://github.com/ClearskyApp06/clearskyservices/blob/main/api.md#rate-limiting
-        const rateLimit = yield* RateLimiter.make({ limit: 5, interval: "1 second" });
-
         const seen = new Set<string>();
         const allLists: ClearskyList[] = [];
         const addLists = (lists: readonly ClearskyList[]) => {
@@ -50,7 +52,7 @@ export const getClearskyLists = (handle: string) =>
                 yield* Effect.logWarning(`More than one page of Clearsky lists...`);
             }
 
-            const lists = yield* getClearskyListsWorker(handle, page, rateLimit);
+            const lists = yield* getClearskyListsWorker(handle, page);
             yield* Effect.logDebug(`Got ${lists.length} lists`);
             addLists(lists);
 
@@ -67,18 +69,16 @@ const BlueskyErrorSchema = Schema.Struct({
 
 class BlueskyError extends Data.TaggedError("BlueskyError")<typeof BlueskyErrorSchema.Type> {}
 
-const decodeBlueskyResponse = <A, I, R, E>(
-    schema: Schema.Schema<A, I, R>,
-) =>
-<E>(response: HttpIncomingMessage.HttpIncomingMessage<E>) =>
-    Effect.gen(function*() {
-        const s = Schema.Union(BlueskyErrorSchema, schema);
-        const json = yield* HttpClientResponse.schemaBodyJson(s)(response);
-        if (typeof json === "object" && json !== null && "error" in json) {
-            yield* new BlueskyError(json);
-        }
-        return json as A;
-    });
+const decodeBlueskyResponse =
+    <S extends Schema.Top>(schema: S) => <E>(response: HttpIncomingMessage.HttpIncomingMessage<E>) =>
+        Effect.gen(function*() {
+            const s = Schema.Union([BlueskyErrorSchema, schema]);
+            const json = yield* HttpClientResponse.schemaBodyJson(s)(response);
+            if (typeof json === "object" && json !== null && "error" in json) {
+                yield* new BlueskyError(json as typeof BlueskyErrorSchema.Type);
+            }
+            return json as S["Type"];
+        });
 
 const BlueskyListsSchema = Schema.Struct({
     list: Schema.Struct({

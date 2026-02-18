@@ -1,9 +1,10 @@
 import "water.css/out/dark.min.css";
 import "./App.css";
 
-import * as FetchHttpClient from "@effect/platform/FetchHttpClient";
 import { HashRouter, Route, useNavigate, useParams } from "@solidjs/router";
-import { Effect, Logger, LogLevel } from "effect";
+import { Effect, References } from "effect";
+import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import { RateLimiter } from "effect/unstable/persistence";
 import { type Component, createResource, For, Match, Show, Switch } from "solid-js";
 import { getBlueskyList, getBlueskyProfile, getBlueskyProfiles, getClearskyLists } from "./apis";
 
@@ -47,15 +48,18 @@ const doWork = (queryHandle: string) =>
         lists.sort((a, b) => b.profile.followersCount - a.profile.followersCount);
 
         return { profile, lists };
-    }).pipe(Effect.scoped, Effect.provide(FetchHttpClient.layer));
+    }).pipe(
+        Effect.scoped,
+        Effect.provide(FetchHttpClient.layer),
+        Effect.provide(RateLimiter.layer),
+        Effect.provide(RateLimiter.layerStoreMemory),
+    );
 
 const fetchInfo = (handle: string) => {
     return Effect.runPromise(
         doWork(handle)
             .pipe(
-                Effect.scoped,
-                Effect.provide(FetchHttpClient.layer),
-                Logger.withMinimumLogLevel(LogLevel.Debug),
+                Effect.provideService(References.MinimumLogLevel, "Debug"),
             ),
     );
 };

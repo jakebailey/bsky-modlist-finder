@@ -16,9 +16,8 @@
         "vite-plugin-solid": "^2.11.10"
     },
     "dependencies": {
-        "@effect/platform": "^0.94.5",
         "@solidjs/router": "^0.15.4",
-        "effect": "^3.19.18",
+        "effect": "^4.0.0-beta.0",
         "solid-js": "^1.9.11",
         "water.css": "^2.1.1"
     },
