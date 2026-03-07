@@ -10,7 +10,7 @@ const ClearskyListsSchema = Schema.Struct({
             did: Schema.String,
             url: Schema.String,
             name: Schema.String,
-            description: Schema.NullishOr(Schema.String),
+            description: Schema.optional(Schema.NullishOr(Schema.String)),
         })),
     }),
 });
@@ -103,10 +103,10 @@ export const getBlueskyList = (did: string, url: string) =>
 const BlueskyProfileSchema = Schema.Struct({
     did: Schema.String,
     handle: Schema.String,
-    displayName: Schema.NullishOr(Schema.String),
-    avatar: Schema.NullishOr(Schema.String),
+    displayName: Schema.optional(Schema.NullishOr(Schema.String)),
+    avatar: Schema.optional(Schema.NullishOr(Schema.String)),
     createdAt: Schema.String,
-    description: Schema.NullishOr(Schema.String),
+    description: Schema.optional(Schema.NullishOr(Schema.String)),
     followersCount: Schema.Number,
     followsCount: Schema.Number,
     postsCount: Schema.Number,
