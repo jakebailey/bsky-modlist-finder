@@ -3,13 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <title>Bluesky Moderation List Finder</title>
+    <title>Redirecting to Bluesky Moderation List Finder...</title>
+    <script>
+      var newUrl = "https://jakebailey.dev/bsky-tools/modlist-finder/" + window.location.hash;
+      window.location.replace(newUrl);
+    </script>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-
-    <script src="/src/index.tsx" type="module"></script>
+    <p>Redirecting to <a id="link" href="https://jakebailey.dev/bsky-tools/modlist-finder/">jakebailey.dev/bsky-tools/modlist-finder</a>...</p>
+    <script>
+      document.getElementById("link").href = newUrl;
+    </script>
   </body>
 </html>
